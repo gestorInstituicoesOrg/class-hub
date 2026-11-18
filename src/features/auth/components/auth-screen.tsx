@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { InstallAppButton } from "@/features/shared/components/install-app-button";
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password";
 
@@ -268,6 +269,8 @@ export function AuthScreen() {
               Voltar para entrar
             </button>
           )}
+
+          {mode === "sign-in" && <InstallAppButton />}
 
           <p className="mt-6 text-center text-xs leading-5 text-secondary">
             Biometria e passkeys poderão ser adicionadas em uma próxima etapa.

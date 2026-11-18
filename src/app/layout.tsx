@@ -5,6 +5,16 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Chamadas",
   description: "Organize turmas, registre presenças e acompanhe resultados.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Chamadas",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport = {
+  themeColor: "#153450",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

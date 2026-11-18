@@ -33,10 +33,13 @@ As migrations ficam em `supabase/migrations/`. O schema inicial cria perfis, tur
 ## Funcionalidades
 
 - Cadastro, login, confirmação de e-mail e recuperação de senha.
+- Instalação como aplicativo pela tela de login em navegadores compatíveis; no iPhone/iPad, instruções para adicionar à Tela de Início.
 - Criação, edição, arquivamento e restauração de turmas.
 - Cadastro e edição de alunos, com reutilização entre turmas.
 - Chamadas por aula, com marcação de presença/ausência e preservação do histórico.
 - Relatórios por turma e período, com totais por aluno e por chamada.
+
+Para instalar, abra a tela de login no navegador e use **Instalar Chamadas** quando a opção aparecer. Em iPhone/iPad, use **Compartilhar → Adicionar à Tela de Início**. A instalação requer HTTPS em produção; `localhost` também é permitido para desenvolvimento.
 
 ## Stack
 
