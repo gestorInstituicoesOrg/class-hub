@@ -19,15 +19,16 @@ list_students 1──N attendance_entries
 - `students`: cadastro nominal pertencente à conta. Um mesmo cadastro pode aparecer em várias listas; nomes repetidos são permitidos para homônimos.
 - `list_students`: vínculo entre aluno e lista. O arquivamento do vínculo encerra a participação atual sem apagar presenças anteriores.
 - `attendance_sessions`: chamada de uma lista, com `started_at` em `timestamptz` e estado `in_progress` ou `completed`. Não há unicidade por data; várias chamadas no mesmo dia são válidas.
-- `attendance_entries`: uma linha por vínculo de aluno incluído no roster no início da chamada. `status` é `NULL` enquanto não marcado e depois `present` ou `absent`; `marked_at` registra quando houve marcação.
+- `attendance_entries`: uma linha por vínculo de aluno incluído no roster no início da chamada. O nome é copiado para `student_name` para preservar o rótulo histórico se o cadastro mudar. `status` é `NULL` enquanto não marcado e depois `present` ou `absent`; `marked_at` registra quando houve marcação.
 
 ## Regras de integridade e acesso
 
 - As chaves compostas em `list_students` e `attendance_sessions` impedem vincular alunos de outra conta e impedem que uma presença associe sessão e vínculo de listas diferentes.
 - RLS está habilitado em todas as tabelas. A conta autenticada só lê ou altera dados próprios; não há permissões de exclusão física pelo papel `authenticated`.
 - O trigger de cadastro cria `profiles` na mesma transação da criação do usuário e exige o metadado `full_name`.
-- A função `create_attendance_session` cria a sessão e suas linhas de presença em uma única transação, copiando apenas os vínculos não arquivados. Uma lista sem alunos ativos não inicia chamada.
-- Uma sessão só passa a `completed` se tiver ao menos um aluno e todas as linhas de presença estiverem marcadas. Uma chamada concluída não pode receber novas linhas nem voltar a ter marcações vazias.
+- A função `create_attendance_session` cria a sessão e suas linhas de presença em uma única transação, copiando apenas vínculos e alunos não arquivados. Uma lista sem alunos ativos não inicia chamada.
+- Uma sessão só é criada pela função transacional e passa a `completed` se tiver ao menos um aluno e todas as linhas de presença estiverem marcadas. Chamadas concluídas e suas marcações são imutáveis para o papel `authenticated`.
+- Um vínculo arquivado pode ser recriado para o mesmo aluno e lista sem sobrescrever o vínculo antigo nem quebrar o histórico.
 - O aplicativo deve arquivar em vez de apagar. Exclusão administrativa direta no banco pode eliminar dados dependentes e não é um fluxo do produto.
 
 ## Relatórios

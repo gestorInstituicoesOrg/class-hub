@@ -34,12 +34,14 @@ create table public.list_students (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (id, list_id),
-  unique (list_id, student_id),
   foreign key (list_id, user_id)
     references public.attendance_lists (id, user_id) on delete cascade,
   foreign key (student_id, user_id)
     references public.students (id, user_id) on delete cascade
 );
+
+create unique index list_students_active_student_idx
+  on public.list_students (list_id, student_id) where archived_at is null;
 
 create table public.attendance_sessions (
   id uuid primary key default gen_random_uuid(),
@@ -64,6 +66,7 @@ create table public.attendance_entries (
   session_id uuid not null,
   list_id uuid not null,
   membership_id uuid not null,
+  student_name text not null,
   status text check (status in ('present', 'absent')),
   marked_at timestamptz,
   created_at timestamptz not null default now(),
@@ -147,6 +150,12 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  if tg_op = 'UPDATE' then
+    if old.status = 'completed' then
+      raise exception 'Completed sessions cannot be changed';
+    end if;
+  end if;
+
   if new.status = 'completed' then
     if not exists (
       select 1
@@ -206,8 +215,8 @@ begin
     select 1
     from public.attendance_sessions s
     where s.id = new.session_id and s.status = 'completed'
-  ) and (tg_op = 'INSERT' or new.status is null) then
-    raise exception 'Completed sessions cannot gain unmarked attendance entries';
+  ) then
+    raise exception 'Completed sessions cannot be changed';
   end if;
 
   return new;
@@ -249,12 +258,18 @@ begin
   values (auth.uid(), p_list_id)
   returning id into new_session_id;
 
-  insert into public.attendance_entries (session_id, list_id, membership_id)
-  select new_session_id, p_list_id, m.id
+  insert into public.attendance_entries (
+    session_id, list_id, membership_id, student_name
+  )
+  select new_session_id, p_list_id, m.id, btrim(s.name)
   from public.list_students m
+  join public.students s
+    on s.id = m.student_id
+    and s.user_id = m.user_id
   where m.user_id = auth.uid()
     and m.list_id = p_list_id
-    and m.archived_at is null;
+    and m.archived_at is null
+    and s.archived_at is null;
 
   get diagnostics created_entry_count = row_count;
   if created_entry_count = 0 then
@@ -328,14 +343,30 @@ create policy "Users can add owned students to owned lists"
 create policy "Users can archive their list memberships"
   on public.list_students for update to authenticated
   using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
+  with check (
+    (select auth.uid()) = list_students.user_id
+    and (
+      list_students.archived_at is not null
+      or (
+        exists (
+          select 1 from public.attendance_lists l
+          where l.id = list_students.list_id
+            and l.user_id = list_students.user_id
+            and l.archived_at is null
+        )
+        and exists (
+          select 1 from public.students s
+          where s.id = list_students.student_id
+            and s.user_id = list_students.user_id
+            and s.archived_at is null
+        )
+      )
+    )
+  );
 
 create policy "Users can read their sessions"
   on public.attendance_sessions for select to authenticated
   using ((select auth.uid()) = user_id);
-create policy "Users can create their sessions"
-  on public.attendance_sessions for insert to authenticated
-  with check ((select auth.uid()) = user_id);
 create policy "Users can update their sessions"
   on public.attendance_sessions for update to authenticated
   using ((select auth.uid()) = user_id)
@@ -344,16 +375,6 @@ create policy "Users can update their sessions"
 create policy "Users can read entries from their sessions"
   on public.attendance_entries for select to authenticated
   using (
-    exists (
-      select 1 from public.attendance_sessions s
-      where s.id = attendance_entries.session_id
-        and s.list_id = attendance_entries.list_id
-        and s.user_id = (select auth.uid())
-    )
-  );
-create policy "Users can add entries to their sessions"
-  on public.attendance_entries for insert to authenticated
-  with check (
     exists (
       select 1 from public.attendance_sessions s
       where s.id = attendance_entries.session_id
@@ -393,7 +414,7 @@ grant update (name, archived_at) on public.students to authenticated;
 grant select, insert on public.list_students to authenticated;
 grant update (archived_at) on public.list_students to authenticated;
 grant select on public.attendance_sessions to authenticated;
-grant update (started_at, status, completed_at) on public.attendance_sessions to authenticated;
+grant update (status) on public.attendance_sessions to authenticated;
 grant select on public.attendance_entries to authenticated;
 grant update (status) on public.attendance_entries to authenticated;
 

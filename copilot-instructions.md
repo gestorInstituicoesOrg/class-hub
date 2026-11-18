@@ -28,4 +28,4 @@ Estas diretrizes valem para respostas e alterações neste repositório. Consult
 - Armazene chamadas como timestamps com fuso (`timestamptz`) e apresente-as no fuso local do usuário.
 - Habilite RLS em todas as tabelas com dados de usuário e restrinja cada registro ao proprietário autenticado.
 - Use a chave publicável/anon apenas conforme necessário no cliente. Nunca exponha `service_role` nem outra chave administrativa; não coloque credenciais reais em arquivos de exemplo ou no controle de versão.
-- Credenciais locais ficam em `.env.local`. O template do projeto é `.env.chamadas.example`; não reutilize arquivos de ambiente legados.
+- Credenciais locais ficam em `.env.local`; use `.env.chamadas.example` como template versionável e não reutilize arquivos locais de ambiente. Nunca reproduza valores reais em código, logs ou documentação.

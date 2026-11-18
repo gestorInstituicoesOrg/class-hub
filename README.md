@@ -10,7 +10,7 @@ Aplicação web responsiva para organizar listas de chamada, registrar presença
 
 ## Desenvolvimento local
 
-1. Copie `.env.chamadas.example` para `.env.local` e preencha as credenciais publicáveis do seu projeto Supabase.
+1. Copie `.env.chamadas.example` para `.env.local` e preencha as credenciais publicáveis do seu projeto Supabase. Se já tiver uma configuração local correta em `.env.example`, pode usá-la como origem sem versionar seus valores.
 2. Instale as dependências com `npm install`.
 3. Inicie o servidor com `npm run dev`.
 4. Abra [http://localhost:3000](http://localhost:3000).
