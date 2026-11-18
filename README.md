@@ -17,9 +17,26 @@ Aplicação web responsiva para organizar listas de chamada, registrar presença
 
 Não use chaves `service_role` ou outras credenciais administrativas no navegador ou em arquivos versionados.
 
+## Supabase Auth
+
+No Supabase, em **Authentication → URL Configuration**, inclua os endereços de callback usados pelos ambientes, por exemplo:
+
+- `http://localhost:3000/auth/callback` para desenvolvimento local;
+- `https://<seu-dominio>/auth/callback` para produção.
+
+Configure também a URL principal do site para o domínio de produção. O cadastro exige confirmação de e-mail quando essa opção está habilitada no Supabase. A recuperação de senha usa a mesma rota de callback e retorna à tela `/auth/update-password`.
+
 ## Banco de dados
 
-As migrations ficam em `supabase/migrations/`. A migration inicial cria perfis, listas, alunos, vínculos, sessões e registros de presença, além de políticas RLS. Aplique-a ao projeto Supabase antes de habilitar as operações do app. O modelo e as regras estão em [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md).
+As migrations ficam em `supabase/migrations/`. O schema inicial cria perfis, turmas, alunos, vínculos, chamadas e registros de presença, além de políticas RLS e validações no banco. O projeto já foi sincronizado com a migration inicial; para novas migrations, use `npx supabase db push` somente depois de revisar o SQL e confirmar o projeto vinculado. Nunca edite uma migration que já foi aplicada. O modelo e as regras estão em [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md).
+
+## Funcionalidades
+
+- Cadastro, login, confirmação de e-mail e recuperação de senha.
+- Criação, edição, arquivamento e restauração de turmas.
+- Cadastro e edição de alunos, com reutilização entre turmas.
+- Chamadas por aula, com marcação de presença/ausência e preservação do histórico.
+- Relatórios por turma e período, com totais por aluno e por chamada.
 
 ## Stack
 

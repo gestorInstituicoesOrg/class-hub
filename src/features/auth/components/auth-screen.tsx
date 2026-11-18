@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type AuthMode = "sign-in" | "sign-up";
+type AuthMode = "sign-in" | "sign-up" | "forgot-password";
 
 export function AuthScreen() {
   const router = useRouter();
@@ -24,13 +24,39 @@ export function AuthScreen() {
 
     try {
       const supabase = createSupabaseBrowserClient();
+      if (mode === "forgot-password") {
+        const redirectTo = new URL(
+          "/auth/callback?next=/auth/update-password",
+          window.location.origin,
+        ).toString();
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo,
+        });
+
+        if (error) {
+          setErrorMessage(error.message);
+        } else {
+          setFeedback(
+            "Se o e-mail estiver cadastrado, enviaremos um link para redefinir sua senha.",
+          );
+        }
+
+        return;
+      }
+
       const result =
         mode === "sign-in"
           ? await supabase.auth.signInWithPassword({ email, password })
           : await supabase.auth.signUp({
               email,
               password,
-              options: { data: { full_name: fullName.trim() } },
+              options: {
+                data: { full_name: fullName.trim() },
+                emailRedirectTo: new URL(
+                  "/auth/callback?next=/dashboard",
+                  window.location.origin,
+                ).toString(),
+              },
             });
 
       if (result.error) {
@@ -89,14 +115,19 @@ export function AuthScreen() {
           <div>
             <p className="text-sm font-medium text-secondary">Bem-vindo(a)</p>
             <h2 className="mt-2 text-2xl font-semibold text-primary">
-              {mode === "sign-in" ? "Acesse sua conta" : "Crie sua conta"}
+              {mode === "sign-in"
+                ? "Acesse sua conta"
+                : mode === "sign-up"
+                  ? "Crie sua conta"
+                  : "Recupere sua senha"}
             </h2>
           </div>
 
-          <div
-            aria-label="Tipo de acesso"
-            className="mt-8 grid grid-cols-2 rounded-xl bg-soft-blue p-1"
-          >
+          {mode !== "forgot-password" && (
+            <div
+              aria-label="Tipo de acesso"
+              className="mt-8 grid grid-cols-2 rounded-xl bg-soft-blue p-1"
+            >
             <button
               aria-pressed={mode === "sign-in"}
               className={`rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
@@ -121,7 +152,8 @@ export function AuthScreen() {
             >
               Cadastrar
             </button>
-          </div>
+            </div>
+          )}
 
           <form className="mt-7 space-y-5" onSubmit={handleSubmit}>
             {mode === "sign-up" && (
@@ -145,7 +177,7 @@ export function AuthScreen() {
               </div>
             )}
 
-            <div>
+            {mode !== "forgot-password" && <div>
               <label
                 className="mb-2 block text-sm font-medium text-foreground"
                 htmlFor="email"
@@ -162,7 +194,7 @@ export function AuthScreen() {
                 type="email"
                 value={email}
               />
-            </div>
+            </div>}
 
             <div>
               <label
@@ -212,9 +244,30 @@ export function AuthScreen() {
                 ? "Aguarde..."
                 : mode === "sign-in"
                   ? "Entrar"
-                  : "Criar conta"}
+                  : mode === "sign-up"
+                    ? "Criar conta"
+                    : "Enviar link de recuperação"}
             </button>
           </form>
+
+          {mode === "sign-in" && (
+            <button
+              className="mt-4 w-full text-center text-sm font-medium text-accent underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              onClick={() => changeMode("forgot-password")}
+              type="button"
+            >
+              Esqueci minha senha
+            </button>
+          )}
+          {mode === "forgot-password" && (
+            <button
+              className="mt-4 w-full text-center text-sm font-medium text-accent underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              onClick={() => changeMode("sign-in")}
+              type="button"
+            >
+              Voltar para entrar
+            </button>
+          )}
 
           <p className="mt-6 text-center text-xs leading-5 text-secondary">
             Biometria e passkeys poderão ser adicionadas em uma próxima etapa.
